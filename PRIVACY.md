@@ -1,1 +1,1 @@
-Star does not collect any information from the user, it simply shows a star.
+This app does not collect any information from the user, it simply shows a star.
