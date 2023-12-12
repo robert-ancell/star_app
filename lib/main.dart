@@ -21,38 +21,44 @@ class StarPainter extends CustomPainter {
     var cx = size.width / 2;
     var cy = size.height / 2;
     var radius = min(size.width, size.height) / 2 - 20;
-    var innerRadius = radius * 0.5;
-    var nPoints = 5;
-    var a = 2 * pi / nPoints;
 
     var starPaint = Paint()..color = color;
-
-    var starPath = Path();
-    starPath.moveTo(cx, cy - radius);
-    for (var i = 0; i < nPoints; i++) {
-      var a0 = a * i;
-      if (i != 0) {
-        var ox = radius * sin(a0);
-        var oy = radius * -cos(a0);
-        starPath.lineTo(cx + ox, cy + oy);
-      }
-      var ix = innerRadius * sin(a0 + a / 2);
-      var iy = innerRadius * -cos(a0 + a / 2);
-      starPath.lineTo(cx + ix, cy + iy);
-    }
-    starPath.close();
+    var starPath = _drawStar(cx, cy, radius);
 
     canvas.drawPath(starPath, starPaint);
   }
 
   @override
   shouldRepaint(CustomPainter oldDelegate) => true;
+
+  Path _drawStar(double x, double y, double radius) {
+    var nPoints = 5;
+    var a = 2 * pi / nPoints;
+    var innerRadius = radius * 0.5;
+
+    var path = Path();
+    path.moveTo(x, y - radius);
+    for (var i = 0; i < nPoints; i++) {
+      var a0 = a * i;
+      if (i != 0) {
+        var ox = radius * sin(a0);
+        var oy = radius * -cos(a0);
+        path.lineTo(x + ox, y + oy);
+      }
+      var ix = innerRadius * sin(a0 + a / 2);
+      var iy = innerRadius * -cos(a0 + a / 2);
+      path.lineTo(x + ix, y + iy);
+    }
+    path.close();
+
+    return path;
+  }
 }
 
 class Star extends StatelessWidget {
   final Color color;
 
-  const Star({required this.color});
+  const Star({super.key, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +72,7 @@ class StarApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Star(color: Colors.yellow),
+      home: const Star(color: Colors.yellow),
     );
   }
 }
