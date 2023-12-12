@@ -15,6 +15,7 @@ enum StarAnimation {
   rainbow,
   shrink,
   invert,
+  face,
 }
 
 class StarPainter extends CustomPainter {
@@ -104,8 +105,32 @@ class StarPainter extends CustomPainter {
 
     var starPaint = Paint()..color = color;
     var starPath = _drawStar(cx, cy, radius, rotation: rotation);
-
     canvas.drawPath(starPath, starPaint);
+
+    if (animation == StarAnimation.face) {
+      var eyeWidth = radius / 10;
+      var eyeHeight = eyeWidth * 2;
+      var eyeOffset = eyeWidth;
+
+      if (progress < 0.1) {
+        var p = progress / 0.1;
+        eyeHeight *= Curves.easeOutExpo.transform(p);
+      } else if (progress > 0.8) {
+        var p = (progress - 0.8) / 0.2;
+        eyeHeight *= Curves.easeOut.transform(1.0 - p);
+      }
+
+      var facePath = Path();
+      facePath.addOval(Rect.fromCenter(
+          center: Offset(cx - eyeOffset, cy),
+          width: eyeWidth,
+          height: eyeHeight));
+      facePath.addOval(Rect.fromCenter(
+          center: Offset(cx + eyeOffset, cy),
+          width: eyeWidth,
+          height: eyeHeight));
+      canvas.drawPath(facePath, Paint());
+    }
   }
 
   @override
