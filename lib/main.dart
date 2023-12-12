@@ -11,8 +11,9 @@ void main() {
 
 class StarPainter extends CustomPainter {
   final Color color;
+  final double progress;
 
-  const StarPainter({required this.color});
+  const StarPainter({required this.color, this.progress = 0.0});
 
   @override
   paint(Canvas canvas, Size size) {
@@ -24,7 +25,8 @@ class StarPainter extends CustomPainter {
     var radius = min(size.width, size.height) / 2 - 20;
 
     var starPaint = Paint()..color = color;
-    var starPath = _drawStar(cx, cy, radius);
+    var starPath = _drawStar(cx, cy, radius,
+        rotation: 2 * pi * Curves.easeInOut.transform(progress));
 
     canvas.drawPath(starPath, starPaint);
   }
@@ -32,18 +34,19 @@ class StarPainter extends CustomPainter {
   @override
   shouldRepaint(CustomPainter oldDelegate) => true;
 
-  Path _drawStar(double x, double y, double radius) {
+  Path _drawStar(double x, double y, double radius, {double rotation = 0.0}) {
     var nPoints = 5;
     var a = 2 * pi / nPoints;
     var innerRadius = radius * 0.5;
 
     var path = Path();
-    path.moveTo(x, y - radius);
     for (var i = 0; i < nPoints; i++) {
-      var a0 = a * i;
-      if (i != 0) {
-        var ox = radius * sin(a0);
-        var oy = radius * -cos(a0);
+      var a0 = a * i + rotation;
+      var ox = radius * sin(a0);
+      var oy = radius * -cos(a0);
+      if (i == 0) {
+        path.moveTo(x + ox, y + oy);
+      } else {
         path.lineTo(x + ox, y + oy);
       }
       var ix = innerRadius * sin(a0 + a / 2);
@@ -67,13 +70,49 @@ class Star extends StatelessWidget {
   }
 }
 
-class StarApp extends StatelessWidget {
+class AnimatedStar extends AnimatedWidget {
+  const AnimatedStar({super.key, required AnimationController controller})
+      : super(listenable: controller);
+
+  Animation<double> get _progress => listenable as Animation<double>;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+        painter: StarPainter(color: Colors.yellow, progress: _progress.value));
+  }
+}
+
+class StarApp extends StatefulWidget {
   const StarApp({super.key});
+
+  @override
+  State<StarApp> createState() => StarAppState();
+}
+
+class StarAppState extends State<StarApp> with TickerProviderStateMixin {
+  late final AnimationController _controller =
+      AnimationController(duration: const Duration(seconds: 2), vsync: this);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: const Star(color: Colors.yellow),
+      home: GestureDetector(
+        onTap: () {
+          if (_controller.isAnimating) {
+            return;
+          }
+          _controller.reset();
+          _controller.forward();
+        },
+        child: AnimatedStar(controller: _controller),
+      ),
     );
   }
 }
