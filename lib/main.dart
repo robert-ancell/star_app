@@ -9,11 +9,21 @@ void main() {
   runApp(const StarApp());
 }
 
+enum StarAnimation {
+  spin,
+  fall
+  //moon, explosion, face, glow, rainbow, music, fiveStarSpin
+}
+
 class StarPainter extends CustomPainter {
   final Color color;
+  final StarAnimation animation;
   final double progress;
 
-  const StarPainter({required this.color, this.progress = 0.0});
+  const StarPainter(
+      {required this.color,
+      this.animation = StarAnimation.spin,
+      this.progress = 0.0});
 
   @override
   paint(Canvas canvas, Size size) {
@@ -23,10 +33,25 @@ class StarPainter extends CustomPainter {
     var cx = size.width / 2;
     var cy = size.height / 2;
     var radius = min(size.width, size.height) / 2 - 20;
+    double rotation = 0.0;
+
+    if (animation == StarAnimation.spin) {
+      rotation = 2 * pi * Curves.easeInOut.transform(progress);
+    }
+
+    if (animation == StarAnimation.fall) {
+      var d = (size.height / 2) + radius;
+      if (progress < 0.5) {
+        var p = Curves.easeInQuad.transform(progress * 2);
+        cy = (size.height / 2) + d * p;
+      } else {
+        var p = Curves.bounceOut.transform((progress - 0.5) * 2);
+        cy = -radius + d * p;
+      }
+    }
 
     var starPaint = Paint()..color = color;
-    var starPath = _drawStar(cx, cy, radius,
-        rotation: 2 * pi * Curves.easeInOut.transform(progress));
+    var starPath = _drawStar(cx, cy, radius, rotation: rotation);
 
     canvas.drawPath(starPath, starPaint);
   }
@@ -71,7 +96,12 @@ class Star extends StatelessWidget {
 }
 
 class AnimatedStar extends AnimatedWidget {
-  const AnimatedStar({super.key, required AnimationController controller})
+  final StarAnimation animation;
+
+  const AnimatedStar(
+      {super.key,
+      required AnimationController controller,
+      this.animation = StarAnimation.spin})
       : super(listenable: controller);
 
   Animation<double> get _progress => listenable as Animation<double>;
@@ -79,7 +109,10 @@ class AnimatedStar extends AnimatedWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-        painter: StarPainter(color: Colors.yellow, progress: _progress.value));
+        painter: StarPainter(
+            color: Colors.yellow,
+            animation: animation,
+            progress: _progress.value));
   }
 }
 
@@ -93,6 +126,8 @@ class StarApp extends StatefulWidget {
 class StarAppState extends State<StarApp> with TickerProviderStateMixin {
   late final AnimationController _controller =
       AnimationController(duration: const Duration(seconds: 2), vsync: this);
+  StarAnimation animation = StarAnimation.spin;
+  final random = Random();
 
   @override
   void dispose() {
@@ -108,10 +143,14 @@ class StarAppState extends State<StarApp> with TickerProviderStateMixin {
           if (_controller.isAnimating) {
             return;
           }
+          setState(() {
+            var animations = StarAnimation.values;
+            animation = animations[random.nextInt(animations.length)];
+          });
           _controller.reset();
           _controller.forward();
         },
-        child: AnimatedStar(controller: _controller),
+        child: AnimatedStar(controller: _controller, animation: animation),
       ),
     );
   }
