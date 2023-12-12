@@ -11,29 +11,58 @@ void main() {
 
 enum StarAnimation {
   spin,
-  fall
-  //moon, explosion, face, glow, rainbow, music, fiveStarSpin
+  fall,
+  rainbow,
+  shrink,
+  invert,
 }
 
 class StarPainter extends CustomPainter {
-  final Color color;
   final StarAnimation animation;
   final double progress;
 
-  const StarPainter(
-      {required this.color,
-      this.animation = StarAnimation.spin,
-      this.progress = 0.0});
+  const StarPainter({this.animation = StarAnimation.spin, this.progress = 0.0});
 
   @override
   paint(Canvas canvas, Size size) {
-    var bgPath = Rect.fromLTRB(0, 0, size.width, size.height);
-    canvas.drawRect(bgPath, Paint());
-
     var cx = size.width / 2;
     var cy = size.height / 2;
     var radius = min(size.width, size.height) / 2 - 20;
     double rotation = 0.0;
+    Color bgColor = Colors.black;
+    Color color = Colors.yellow;
+
+    if (animation == StarAnimation.shrink) {
+      if (progress < 0.5) {
+        var p = progress * 2;
+        radius *= (1.0 - p);
+      } else {
+        var p = (progress - 0.5) * 2;
+        radius *= Curves.elasticOut.transform(p);
+      }
+    }
+
+    if (animation == StarAnimation.invert) {
+      var color0 = bgColor;
+      var color1 = color;
+      if (progress < 0.5) {
+        var p = progress * 2;
+        bgColor = HSVColor.lerp(
+                HSVColor.fromColor(color0), HSVColor.fromColor(color1), p)!
+            .toColor();
+        color = HSVColor.lerp(
+                HSVColor.fromColor(color1), HSVColor.fromColor(color0), p)!
+            .toColor();
+      } else {
+        var p = (progress - 0.5) * 2;
+        bgColor = HSVColor.lerp(
+                HSVColor.fromColor(color1), HSVColor.fromColor(color0), p)!
+            .toColor();
+        color = HSVColor.lerp(
+                HSVColor.fromColor(color0), HSVColor.fromColor(color1), p)!
+            .toColor();
+      }
+    }
 
     if (animation == StarAnimation.spin) {
       rotation = 2 * pi * Curves.easeInOut.transform(progress);
@@ -49,6 +78,29 @@ class StarPainter extends CustomPainter {
         cy = -radius + d * p;
       }
     }
+
+    if (animation == StarAnimation.rainbow) {
+      var colors = [
+        Colors.yellow,
+        Colors.green,
+        Colors.lightBlue,
+        Colors.purple,
+        Colors.red,
+        Colors.orange
+      ];
+      var c = progress * colors.length;
+      var colorIndex = c.floor();
+      var colorBlend = c - colorIndex;
+      var color0 = colors[colorIndex % colors.length];
+      var color1 = colors[(colorIndex + 1) % colors.length];
+      color = HSVColor.lerp(HSVColor.fromColor(color0),
+              HSVColor.fromColor(color1), colorBlend)!
+          .toColor();
+    }
+
+    var bgPaint = Paint()..color = bgColor;
+    var bgPath = Rect.fromLTRB(0, 0, size.width, size.height);
+    canvas.drawRect(bgPath, bgPaint);
 
     var starPaint = Paint()..color = color;
     var starPath = _drawStar(cx, cy, radius, rotation: rotation);
@@ -84,17 +136,6 @@ class StarPainter extends CustomPainter {
   }
 }
 
-class Star extends StatelessWidget {
-  final Color color;
-
-  const Star({super.key, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: StarPainter(color: color));
-  }
-}
-
 class AnimatedStar extends AnimatedWidget {
   final StarAnimation animation;
 
@@ -109,10 +150,7 @@ class AnimatedStar extends AnimatedWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-        painter: StarPainter(
-            color: Colors.yellow,
-            animation: animation,
-            progress: _progress.value));
+        painter: StarPainter(animation: animation, progress: _progress.value));
   }
 }
 
